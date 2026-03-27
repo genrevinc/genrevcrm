@@ -138,26 +138,43 @@ async function runMigrations() {
     const tenantRes = await client.query(`SELECT id FROM tenants WHERE slug = 'genrev' LIMIT 1`);
     const tenantId = tenantRes.rows[0]?.id;
     if (tenantId) {
-      // Only create pipeline + stages if none exist yet
-      const existingPipeline = await client.query(`SELECT id FROM pipelines WHERE tenant_id = $1 LIMIT 1`, [tenantId]);
-      let pipelineId = existingPipeline.rows[0]?.id;
+        // Use fixed pipeline ID so re-deploys never create duplicates
+      const PIPELINE_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 
-      if (!pipelineId) {
-        const pipeRes = await client.query(`INSERT INTO pipelines (tenant_id, name, is_default) VALUES ($1, 'Sales Pipeline', true) RETURNING id`, [tenantId]);
-        pipelineId = pipeRes.rows[0]?.id;
-      }
+      // Create pipeline only if it doesn't exist
+      await client.query(`
+        INSERT INTO pipelines (id, tenant_id, name, is_default)
+        VALUES ($1, $2, 'Sales Pipeline', true)
+        ON CONFLICT (id) DO NOTHING
+      `, [PIPELINE_ID, tenantId]);
 
-      if (pipelineId) {
-        const stageCount = await client.query(`SELECT COUNT(*) FROM pipeline_stages WHERE pipeline_id = $1`, [pipelineId]);
-        if (parseInt(stageCount.rows[0].count) === 0) {
-          const stages = [['New Lead',1,0,'#6366f1',false,false],['Contacted',2,10,'#8b5cf6',false,false],['Qualified',3,25,'#06b6d4',false,false],['Discovery',4,40,'#0ea5e9',false,false],['Proposal Sent',5,60,'#f59e0b',false,false],['Negotiation',6,75,'#f97316',false,false],['Won',7,100,'#10b981',true,false],['Lost',8,0,'#ef4444',false,true],['Nurture',9,5,'#94a3b8',false,false]];
-          for (const [name,pos,prob,color,won,lost] of stages) {
-            await client.query(`INSERT INTO pipeline_stages (pipeline_id, name, position, probability_default, color, is_won, is_lost) VALUES ($1,$2,$3,$4,$5,$6,$7)`, [pipelineId,name,pos,prob,color,won,lost]);
-          }
-          console.log('✅ Pipeline stages created');
-        } else {
-          console.log('✅ Pipeline stages already exist — skipping');
+      // Create stages only if none exist for this pipeline
+      const stageCount = await client.query(
+        `SELECT COUNT(*) FROM pipeline_stages WHERE pipeline_id = $1`,
+        [PIPELINE_ID]
+      );
+
+      if (parseInt(stageCount.rows[0].count) === 0) {
+        const stages = [
+          ['New Lead',1,0,'#6366f1',false,false],
+          ['Contacted',2,10,'#8b5cf6',false,false],
+          ['Qualified',3,25,'#06b6d4',false,false],
+          ['Discovery',4,40,'#0ea5e9',false,false],
+          ['Proposal Sent',5,60,'#f59e0b',false,false],
+          ['Negotiation',6,75,'#f97316',false,false],
+          ['Won',7,100,'#10b981',true,false],
+          ['Lost',8,0,'#ef4444',false,true],
+          ['Nurture',9,5,'#94a3b8',false,false]
+        ];
+        for (const [name,pos,prob,color,won,lost] of stages) {
+          await client.query(
+            `INSERT INTO pipeline_stages (pipeline_id, name, position, probability_default, color, is_won, is_lost) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+            [PIPELINE_ID, name, pos, prob, color, won, lost]
+          );
         }
+        console.log('✅ Pipeline stages created');
+      } else {
+        console.log(`✅ Pipeline stages exist (${stageCount.rows[0].count}) — skipping`);
       }
       await client.query(`INSERT INTO users (tenant_id, email, password_hash, full_name, role) VALUES ($1, 'admin@genrevcrm.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lVWy', 'Admin User', 'admin') ON CONFLICT (email) DO NOTHING`, [tenantId]);
     }
