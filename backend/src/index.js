@@ -125,6 +125,15 @@ async function runMigrations() {
       `CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read)`,
     ];
     for (const idx of indexes) await client.query(idx);
+
+    // Unique constraint to prevent duplicate pipeline stages on re-deploy
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE pipeline_stages ADD CONSTRAINT uq_pipeline_stage_pos UNIQUE (pipeline_id, position);
+      EXCEPTION WHEN duplicate_table THEN NULL; WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
     await client.query(`INSERT INTO tenants (name, slug, plan) VALUES ('GenRev', 'genrev', 'pro') ON CONFLICT (slug) DO NOTHING`);
     const tenantRes = await client.query(`SELECT id FROM tenants WHERE slug = 'genrev' LIMIT 1`);
     const tenantId = tenantRes.rows[0]?.id;
