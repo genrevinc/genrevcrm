@@ -38,7 +38,7 @@ export function ReportsPage() {
     Promise.all([api.get('/dashboard/stats'), api.get('/dashboard/forecast')]).then(([s, f]) => { setStats(s.data); setForecast(f.data) })
   }, [])
 
-  const fmtK = v => v >= 1000 ? `$${(v/1000).toFixed(0)}K` : `$${Math.round(v)}`
+  const fmtK = v => { const n = parseFloat(v) || 0; return n >= 1000 ? `$${(n/1000).toFixed(0)}K` : `$${Math.round(n)}` }
 
   const COLORS = ['#10b981','#f59e0b','#6366f1','#94a3b8']
   const forecastData = forecast ? [
