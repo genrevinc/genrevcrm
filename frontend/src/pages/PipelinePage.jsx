@@ -89,7 +89,7 @@ export default function PipelinePage() {
   }
 
   const totalPipelineValue = stages.reduce((sum, s) => sum + (parseFloat(s.total_value) || 0), 0)
-  const formatK = (v) => v >= 1000 ? `$${(v / 1000).toFixed(0)}K` : `$${v}`
+  const formatK = (v) => { const n = parseFloat(v) || 0; return n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${Math.round(n)}` }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
 
