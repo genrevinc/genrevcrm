@@ -1,0 +1,8 @@
+{
+  "name": "genrev",
+  "version": "1.0.0",
+  "description": "GenRev CRM",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
