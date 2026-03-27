@@ -1,1 +1,0 @@
-export { ActivitiesPage as default } from './_other_pages'
