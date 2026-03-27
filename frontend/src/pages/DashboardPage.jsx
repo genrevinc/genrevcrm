@@ -63,10 +63,10 @@ export default function DashboardPage() {
   }, [])
 
   const formatCurrency = (v) => {
-    if (!v) return '$0'
-    if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`
-    if (v >= 1000) return `$${(v / 1000).toFixed(0)}K`
-    return `$${v.toFixed(0)}`
+    const n = parseFloat(v) || 0
+    if (n >= 1000000) return `$${(n / 1000000).toFixed(1)}M`
+    if (n >= 1000) return `$${(n / 1000).toFixed(0)}K`
+    return `$${n.toFixed(0)}`
   }
 
   const forecastData = forecast ? [
@@ -123,7 +123,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2.5">
             {stats?.stage_breakdown?.map((s) => {
-              const pct = stats.pipeline_value > 0 ? (s.total_value / stats.pipeline_value) * 100 : 0
+              const pct = parseFloat(stats.pipeline_value) > 0 ? (parseFloat(s.total_value) / parseFloat(stats.pipeline_value)) * 100 : 0
               return (
                 <div key={s.name} className="flex items-center gap-3">
                   <div className="w-24 text-xs text-slate-600 truncate">{s.name}</div>
