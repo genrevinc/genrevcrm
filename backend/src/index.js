@@ -19,6 +19,7 @@ const { pool } = require('./db');
 const { startJobs } = require('./jobs');
 
 const app = express();
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3001;
 
 // Security
